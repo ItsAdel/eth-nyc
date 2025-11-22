@@ -7,12 +7,17 @@ import type { OmniPointHardhat } from '@layerzerolabs/toolbox-hardhat'
 
 const baseContract: OmniPointHardhat = {
     eid: EndpointId.BASESEP_V2_TESTNET,
-    contractName: 'MyONFT721',
+    contractName: 'MyONFT721Mock',
 }
 
 const arbitrumContract: OmniPointHardhat = {
     eid: EndpointId.ARBSEP_V2_TESTNET,
-    contractName: 'MyONFT721',
+    contractName: 'MyONFT721Mock',
+}
+
+const optimismContract: OmniPointHardhat = {
+    eid: EndpointId.OPTSEP_V2_TESTNET,
+    contractName: 'MyONFT721Mock',
 }
 
 // To connect all the above chains to each other, we need the following pathways:
@@ -40,13 +45,27 @@ const pathways: TwoWayConfig[] = [
         [1, 1], // [A to B confirmations, B to A confirmations]
         [EVM_ENFORCED_OPTIONS, EVM_ENFORCED_OPTIONS], // Chain B enforcedOptions, Chain A enforcedOptions
     ],
+    [
+        optimismContract, // Chain A contract
+        arbitrumContract, // Chain B contract
+        [['LayerZero Labs'], []], // [ requiredDVN[], [ optionalDVN[], threshold ] ]
+        [1, 1], // [A to B confirmations, B to A confirmations]
+        [EVM_ENFORCED_OPTIONS, EVM_ENFORCED_OPTIONS], // Chain B enforcedOptions, Chain A enforcedOptions
+    ],
+    [
+        optimismContract, // Chain A contract
+        baseContract, // Chain B contract
+        [['LayerZero Labs'], []], // [ requiredDVN[], [ optionalDVN[], threshold ] ]
+        [1, 1], // [A to B confirmations, B to A confirmations]
+        [EVM_ENFORCED_OPTIONS, EVM_ENFORCED_OPTIONS], // Chain B enforcedOptions, Chain A enforcedOptions
+    ],
 ]
 
 export default async function () {
     // Generate the connections config based on the pathways
     const connections = await generateConnectionsConfig(pathways)
     return {
-        contracts: [{ contract: baseContract }, { contract: arbitrumContract }],
+        contracts: [{ contract: baseContract }, { contract: arbitrumContract }, { contract: optimismContract }],
         connections,
     }
 }

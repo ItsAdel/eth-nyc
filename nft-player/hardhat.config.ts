@@ -9,6 +9,8 @@ import 'hardhat-deploy'
 import 'hardhat-contract-sizer'
 import '@nomiclabs/hardhat-ethers'
 import '@layerzerolabs/toolbox-hardhat'
+import './tasks/sendNft'
+
 import { HardhatUserConfig, HttpNetworkAccountsUserConfig } from 'hardhat/types'
 
 import { EndpointId } from '@layerzerolabs/lz-definitions'
@@ -56,12 +58,17 @@ const config: HardhatUserConfig = {
     networks: {
         'arbitrum-sepolia': {
             eid: EndpointId.ARBSEP_V2_TESTNET,
-            url: process.env.RPC_URL_ARB_SEPOLIA || 'https://arbitrum-sepolia.gateway.tenderly.co',
+            url: process.env.RPC_URL_ARB_SEPOLIA || '',
             accounts,
         },
         'base-sepolia': {
             eid: EndpointId.BASESEP_V2_TESTNET,
-            url: process.env.RPC_URL_BASE_SEPOLIA || 'https://base-sepolia.gateway.tenderly.co',
+            url: process.env.RPC_URL_BASE_SEPOLIA || '',
+            accounts,
+        },
+        'optimism-sepolia': {
+            eid: EndpointId.OPTSEP_V2_TESTNET,
+            url: process.env.RPC_URL_OPT_SEPOLIA || '',
             accounts,
         },
         hardhat: {
