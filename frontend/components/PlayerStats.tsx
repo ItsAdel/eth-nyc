@@ -33,7 +33,7 @@ export function PlayerStats() {
             type="number"
             value={tokenId}
             onChange={(e) => setTokenId(e.target.value)}
-            className="w-full px-4 py-3 rounded-lg bg-gray-900 border border-gray-700 focus:border-purple-500 focus:outline-none"
+            className="w-full px-4 py-3 rounded-lg bg-gray-800 border border-gray-600 text-white placeholder-gray-400 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/50 focus:outline-none"
             placeholder="Enter token ID to view stats"
           />
         </div>

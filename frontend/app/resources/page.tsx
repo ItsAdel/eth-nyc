@@ -9,9 +9,14 @@ export default function ResourcesPage() {
       <header className="border-b border-gray-800 bg-gray-900/50 backdrop-blur-sm">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
-            <Link href="/" className="text-2xl font-bold bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent hover:opacity-80">
-              Aetheria
-            </Link>
+            <div className="flex gap-6 items-center">
+              <Link href="/" className="text-2xl font-bold bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent hover:opacity-80">
+                Aetheria
+              </Link>
+              <Link href="/dashboard" className="text-sm text-gray-400 hover:text-gray-300">
+                Dashboard
+              </Link>
+            </div>
             <ConnectButton />
           </div>
         </div>
@@ -20,8 +25,8 @@ export default function ResourcesPage() {
       {/* Main Content */}
       <main className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
         <div className="mb-8">
-          <Link href="/" className="text-green-400 hover:text-green-300">
-            ← Back to Home
+          <Link href="/dashboard" className="text-green-400 hover:text-green-300">
+            ← Back to Dashboard
           </Link>
         </div>
 

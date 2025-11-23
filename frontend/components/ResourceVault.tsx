@@ -132,7 +132,7 @@ export function ResourceVault() {
               type="number"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              className="w-full px-4 py-3 rounded-lg bg-gray-900 border border-gray-700 focus:border-green-500 focus:outline-none"
+              className="w-full px-4 py-3 rounded-lg bg-gray-800 border border-gray-600 text-white placeholder-gray-400 focus:border-green-500 focus:ring-2 focus:ring-green-500/50 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
               placeholder="0.0"
               disabled={status !== 'idle'}
               step="0.1"
@@ -140,7 +140,7 @@ export function ResourceVault() {
             />
             <button
               onClick={() => setAmount(energyBalance ? formatTokenAmount(energyBalance as bigint) : '0')}
-              className="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1 text-sm rounded bg-gray-800 hover:bg-gray-700 border border-gray-600"
+              className="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1 text-sm rounded bg-gray-700 hover:bg-gray-600 border border-gray-500 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={status !== 'idle'}
             >
               MAX
