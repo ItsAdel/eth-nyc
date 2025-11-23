@@ -10,6 +10,7 @@ import 'hardhat-contract-sizer'
 import '@nomiclabs/hardhat-ethers'
 import '@layerzerolabs/toolbox-hardhat'
 import './tasks/sendNft'
+import './tasks/sendNftCompose'
 
 import { HardhatUserConfig, HttpNetworkAccountsUserConfig } from 'hardhat/types'
 

@@ -7,6 +7,7 @@ import { OAppOptionsType3 } from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OA
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { OptionsBuilder } from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
 import { ONFTComposeMsgCodec } from "@layerzerolabs/onft-evm/contracts/libs/ONFTComposeMsgCodec.sol";
+import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 
 /*
 *
@@ -43,6 +44,8 @@ contract MyONFT721ComposerMock is IOAppComposer, OApp, OAppOptionsType3 {
     event BattleStarted(uint256 indexed tokenId);
     event BattleResult(uint256 indexed tokenId, bool won);
     event BattleResultSentToHub(uint256 indexed tokenId, bool won);
+    event ONFTTransferredBack(address indexed sender, uint256 indexed tokenId, address indexed onftContract);
+    event ONFTTransferFailed(address indexed sender, uint256 indexed tokenId, address indexed onftContract);
 
     /// @notice Set the hub chain endpoint ID
     /// @param _hubChainEid The endpoint ID of the hub chain
@@ -68,9 +71,7 @@ contract MyONFT721ComposerMock is IOAppComposer, OApp, OAppOptionsType3 {
     function _getRandomOutcome() internal view returns (bool won) {
         // Simple pseudo-random number generation
         // In production, consider using Chainlink VRF or similar
-        uint256 random = uint256(
-            keccak256(abi.encodePacked(block.timestamp, block.prevrandao, msg.sender, gasleft()))
-        ) % 2;
+        uint256 random = uint256(keccak256(abi.encodePacked(block.timestamp, block.prevrandao, msg.sender))) % 2;
 
         return random == 1;
     }
@@ -148,13 +149,7 @@ contract MyONFT721ComposerMock is IOAppComposer, OApp, OAppOptionsType3 {
 
     /// @notice Send raw bytes to a remote chain
     function sendBytes(uint32 _dstEid, bytes calldata _data, bytes calldata _options) public payable {
-        _lzSend(
-            _dstEid,
-            _data,
-            combineOptions(_dstEid, SEND, _options),
-            MessagingFee(msg.value, 0),
-            payable(msg.sender)
-        );
+        _lzSend(_dstEid, _data, combineOptions(_dstEid, SEND, _options), MessagingFee(msg.value, 0), tx.origin);
     }
 
     // ──────────────────────────────────────────────────────────────────────────────
@@ -203,12 +198,13 @@ contract MyONFT721ComposerMock is IOAppComposer, OApp, OAppOptionsType3 {
     ) external payable {
         from = _from;
         guid = _guid;
-        message = _message;
+        message = _message.composeMsg();
         executor = _executor;
-        extraData = _message;
+
+        address senderOnSrc = _message.composeFrom().bytes32ToAddress();
 
         // Decode the message to get tokenId (player's NFT)
-        uint256 tokenId = abi.decode(_message, (uint256));
+        uint256 tokenId = abi.decode(message, (uint256));
 
         // Simulate the battle (50% win chance)
         bool won = _simulateBattle(tokenId);
@@ -223,6 +219,29 @@ contract MyONFT721ComposerMock is IOAppComposer, OApp, OAppOptionsType3 {
             // Send update to hub chain
             // Note: This requires msg.value to cover gas costs
             this.sendBytes{ value: msg.value }(hubChainEid, battleResult, "");
+        }
+
+        // Transfer the ONFT back to the sender
+        _transferONFTBackToSender(senderOnSrc, tokenId);
+    }
+
+    /// @notice Transfer ONFT back to the sender on source chain
+    function _transferONFTBackToSender(address _senderOnSrc, uint256 tokenId) internal {
+        // The executor should be the ONFT contract
+        address onftContract = from;
+
+        if (tokenId > 0 && onftContract != address(0)) {
+            // Use IERC721 interface for the transfer
+            try IERC721(onftContract).safeTransferFrom(address(this), _senderOnSrc, tokenId) {
+                emit ONFTTransferredBack(_senderOnSrc, tokenId, onftContract);
+            } catch {
+                // Fallback to regular transferFrom if safeTransferFrom fails
+                try IERC721(onftContract).transferFrom(address(this), _senderOnSrc, tokenId) {
+                    emit ONFTTransferredBack(_senderOnSrc, tokenId, onftContract);
+                } catch {
+                    emit ONFTTransferFailed(_senderOnSrc, tokenId, onftContract);
+                }
+            }
         }
     }
 
