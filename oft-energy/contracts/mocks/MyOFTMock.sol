@@ -8,12 +8,20 @@ contract MyOFTMock is MyOFT {
     /// @notice Address that has permission to mint tokens
     address public minter;
 
-    /// @notice Emitted when minter address is updated
-    event MinterUpdated(address indexed oldMinter, address indexed newMinter);
+    /// @notice Address that has permission to burn tokens
+    address public burner;
 
-    /// @notice Modifier to restrict function access to only the minter
+    /// @notice Emitted when minter/burner address is updated
+    event MinterUpdated(address indexed oldMinter, address indexed newMinter);
+    event BurnerUpdated(address indexed oldBurner, address indexed newBurner);
+
     modifier onlyMinter() {
         require(msg.sender == minter, "MyOFTMock: caller is not the minter");
+        _;
+    }
+
+    modifier onlyBurner() {
+        require(msg.sender == burner, "MyOFTMock: caller is not the burner");
         _;
     }
 
@@ -37,10 +45,24 @@ contract MyOFTMock is MyOFT {
         emit MinterUpdated(oldMinter, _minter);
     }
 
+    /// @notice Set the burner address (only owner can call)
+    /// @param _burner The new burner address
+    function setBurner(address _burner) external onlyOwner {
+        require(_burner != address(0), "MyOFTMock: burner cannot be zero address");
+        address oldBurner = burner;
+        burner = _burner;
+        emit BurnerUpdated(oldBurner, _burner);
+    }
+
     /// @notice Mint tokens to an address (only minter can call)
     /// @param _to The address to mint tokens to
     /// @param _amount The amount of tokens to mint
     function mint(address _to, uint256 _amount) public onlyMinter {
         _mint(_to, _amount);
+    }
+
+    function burnFrom(address user, uint256 amount) external onlyBurner {
+        _spendAllowance(user, msg.sender, amount); // reduces allowance
+        _burn(user, amount); // burns user's tokens
     }
 }

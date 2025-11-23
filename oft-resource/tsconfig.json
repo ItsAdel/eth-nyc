@@ -1,11 +1,13 @@
 {
-  "exclude": ["node_modules"],
+  "exclude": [
+    "node_modules"
+  ],
   "include": [
     "deploy",
     "tasks",
     "test",
     "hardhat.config.ts",
-    "layerzero.config.ts"
+    "layerzero.wood.config.ts"
   ],
   "compilerOptions": {
     "target": "es2020",
