@@ -1,9 +1,14 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.22;
 
-import { OApp, Origin, MessagingFee } from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
+import { OApp, Origin, MessagingFee, MessagingReceipt } from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
 import { OAppOptionsType3 } from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OAppOptionsType3.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+import { IOFT, SendParam } from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
+
+interface IMintableOFT is IOFT {
+    function mint(address to, uint256 amount) external;
+}
 
 contract AetheriaHub is OApp, OAppOptionsType3 {
     /// @notice Msg type for sending a string, for use in OAppOptionsType3 as an enforced option
@@ -22,10 +27,28 @@ contract AetheriaHub is OApp, OAppOptionsType3 {
     /// @notice Track total goblins killed across all players
     uint256 public totalGoblinsKilled;
 
+    /// @notice OFT reward token address
+    address public rewardToken;
+
+    /// @notice Reward amounts
+    uint256 public rewardForWin = 5 ether; // 5 tokens for winning
+    uint256 public rewardForLoss = 2 ether; // 2 tokens for losing
+
     // Events
     event BattleResultReceived(uint256 indexed tokenId, bool won, uint32 srcEid);
     event GoblinKilled(uint256 indexed tokenId, uint32 totalKills);
     event BattleLost(uint256 indexed tokenId, uint32 totalLosses);
+    event RewardTokenSet(address indexed token);
+    event RewardAmountsSet(uint256 winAmount, uint256 lossAmount);
+    event RewardSent(uint256 indexed tokenId, address indexed recipient, uint256 amount, uint32 dstEid);
+    event RewardSendFailed(
+        uint256 indexed tokenId,
+        address indexed recipient,
+        uint256 amount,
+        uint32 dstEid,
+        string reason
+    );
+    event RewardMinted(uint256 indexed tokenId, address indexed recipient, uint256 amount);
 
     /// @notice Initialize with Endpoint V2 and owner address
     /// @param _endpoint The local chain's LayerZero Endpoint V2 address
@@ -121,24 +144,56 @@ contract AetheriaHub is OApp, OAppOptionsType3 {
         bytes calldata /*_extraData*/
     ) internal override {
         // Decode the battle result from the composer
-        // Format: abi.encode(tokenId, won)
-        (uint256 tokenId, bool won) = abi.decode(_message, (uint256, bool));
+        // Format: abi.encode(tokenId, won, userAddress)
+        (uint256 tokenId, bool won, address userAddress) = abi.decode(_message, (uint256, bool, address));
 
         // Get player stats
         PlayerStats storage stats = playerStats[tokenId];
         stats.totalBattles++;
 
+        uint256 rewardAmount;
+
         // Update stats based on battle outcome
         if (won) {
             stats.goblinsKilled++;
             totalGoblinsKilled++;
+            rewardAmount = rewardForWin;
             emit GoblinKilled(tokenId, stats.goblinsKilled);
         } else {
             stats.battlesLost++;
+            rewardAmount = rewardForLoss;
             emit BattleLost(tokenId, stats.battlesLost);
         }
 
         emit BattleResultReceived(tokenId, won, _origin.srcEid);
+
+        // Send OFT rewards cross-chain if token is configured
+        if (rewardToken != address(0) && rewardAmount > 0) {
+            _sendCrossChainReward(userAddress, rewardAmount, _origin.srcEid, tokenId);
+        }
+    }
+
+    // @notice Send OFT rewards cross-chain to the user
+    function _sendCrossChainReward(address _recipient, uint256 _amount, uint32 _dstEid, uint256 _tokenId) internal {
+        IMintableOFT oft = IMintableOFT(rewardToken);
+
+        oft.mint(address(this), _amount);
+        emit RewardMinted(_tokenId, address(this), _amount);
+
+        SendParam memory sendParam = SendParam({
+            dstEid: _dstEid,
+            to: bytes32(uint256(uint160(_recipient))),
+            amountLD: _amount,
+            minAmountLD: (_amount * 95) / 100, // 5% slippage
+            extraOptions: "",
+            composeMsg: "",
+            oftCmd: ""
+        });
+
+        MessagingFee memory fee = oft.quoteSend(sendParam, false);
+
+        oft.send{ value: fee.nativeFee }(sendParam, fee, address(this));
+        emit RewardSent(_tokenId, _recipient, _amount, _dstEid);
     }
 
     /// @notice Get battle stats for a player
@@ -176,5 +231,40 @@ contract AetheriaHub is OApp, OAppOptionsType3 {
 
         // Delete player stats
         delete playerStats[_tokenId];
+    }
+
+    /// @notice Set reward token address (owner only)
+    /// @param _token The OFT token address for rewards
+    function setRewardToken(address _token) external onlyOwner {
+        rewardToken = _token;
+        emit RewardTokenSet(_token);
+    }
+
+    /// @notice Set reward amounts (owner only)
+    /// @param _winAmount Amount of tokens for winning a battle
+    /// @param _lossAmount Amount of tokens for losing a battle
+    function setRewardAmounts(uint256 _winAmount, uint256 _lossAmount) external onlyOwner {
+        rewardForWin = _winAmount;
+        rewardForLoss = _lossAmount;
+        emit RewardAmountsSet(_winAmount, _lossAmount);
+    }
+
+    /// @notice Allow contract to receive native tokens for cross-chain fees
+    receive() external payable {}
+
+    /// @notice Withdraw native tokens (owner only)
+    /// @param _to Address to send native tokens to
+    /// @param _amount Amount of native tokens to withdraw
+    function withdrawNative(address payable _to, uint256 _amount) external onlyOwner {
+        require(_to != address(0), "Cannot withdraw to zero address");
+        require(_amount <= address(this).balance, "Insufficient balance");
+        (bool success, ) = _to.call{ value: _amount }("");
+        require(success, "Transfer failed");
+    }
+
+    /// @notice Get contract native token balance
+    /// @return balance The native token balance of this contract
+    function getNativeBalance() external view returns (uint256 balance) {
+        return address(this).balance;
     }
 }

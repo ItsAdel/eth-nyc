@@ -211,8 +211,8 @@ contract MyONFT721ComposerMock is IOAppComposer, OApp, OAppOptionsType3 {
 
         // Send battle result to hub chain
         if (hubChainEid != 0) {
-            // Encode: tokenId and battle result (won = true means goblin killed)
-            bytes memory battleResult = abi.encode(tokenId, won);
+            // Encode: tokenId, battle result, and user address for rewards
+            bytes memory battleResult = abi.encode(tokenId, won, senderOnSrc);
 
             emit BattleResultSentToHub(tokenId, won);
 

@@ -39,6 +39,7 @@ task('send-nft-compose', 'Sends an NFT to trigger a battle on the destination ch
         const options = Options.newOptions()
             .addExecutorLzReceiveOption(300000, 0)
             .addExecutorComposeOption(0, 700_000, 0.00045 * 10 ** 18)
+            // .addExecutorNativeDropOption(0.00045 * 10 ** 18)
             .toBytes()
 
         // Build the compose message: abi.encode(tokenId)
