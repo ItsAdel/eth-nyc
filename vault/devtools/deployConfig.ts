@@ -44,7 +44,7 @@ export const DEPLOYMENT_CONFIG: DeploymentConfig = {
         // This must be the address of the ERC4626 vault
         vaultAddress: undefined, // Set to '0xabc...' to use existing vault
         // This must be the address of the asset OFT (not all OFT addresses are the same as the ERC20 contract)
-        assetOFTAddress: undefined, // Set to '0xdef...' to use existing asset OFT
+        assetOFTAddress: '0x5AEb971504e46906a4fD0f1557395DDF5e4B4D58', // Set to '0xdef...' to use existing asset OFT
         // This must be the address of the ShareOFTAdapter
         shareOFTAdapterAddress: undefined, // Set to '0xghi...' to use existing ShareOFTAdapter
     },
@@ -53,18 +53,18 @@ export const DEPLOYMENT_CONFIG: DeploymentConfig = {
     shareOFT: {
         contract: 'MyShareOFT',
         metadata: {
-            name: 'MyShareOFT',
-            symbol: 'SHARE',
+            name: 'WoodShareOFT',
+            symbol: 'WOODSHARE',
         },
         deploymentEids: _spokeEids,
     },
 
     // Asset OFT configuration (deployed on specified chains OR use existing address)
     assetOFT: {
-        contract: 'MyAssetOFT',
+        contract: 'WoodResourceOFT',
         metadata: {
-            name: 'MyAssetOFT',
-            symbol: 'ASSET',
+            name: 'WoodResourceOFT',
+            symbol: 'WOOD',
         },
         deploymentEids: [_hubEid, ..._spokeEids],
     },
